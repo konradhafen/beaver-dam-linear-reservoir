@@ -6,12 +6,15 @@ def getArea(h0, h1, s, p):
     area = s * (h1/h0) ** (2/p)
     return area
 
+
 def getHeight(h0, v, s, p):
-    h = (h0**(2*p)*((v+(2*v)/p)/s))**(1/(1+2*p))
+    # h = (h0**(2*p)*((v+(2*v)/p)/s))**(1/(1+(2/p)))
+    h = (h0**(2*p)*(v/(s/(1+(2/p)))))**(1/(1+(2/p)))
     return h
 
+
 def getVolume(h0, h, s, p):
-    v = (s/(1+(2/p)))*((h**(1+(2/p))/(h0**(2*p))))
+    v = (s/(1+(2/p)))*(h**(1+(2/p))/(h0**(2*p)))
     return v
 
 
@@ -24,7 +27,7 @@ etr = 0.00  # et rate (m/day)
 k = 0.2  # reservoir/recession coefficient (day^-1)
 
 nponds = 2
-ndays = 5
+ndays = 10
 volume = np.zeros((ndays, nponds))
 inflow = np.copy(volume)
 outflow = np.copy(volume)
@@ -33,8 +36,9 @@ area = np.copy(volume)
 
 volume[0, :] = v0
 inflow[:, 0] = np.linspace(1.0*24*60*60/35.3147, 0, ndays)
+inflow[:, 0] = np.linspace(0, 0, ndays)
 h = np.full((1, nponds), h0)  # inital height (water depth) for each pond
-
+print('initial area', getArea(h0, h0, s, p))
 for i in range(0, volume.shape[0]-1):
     area[i, :] = getArea(h0, h, s, p)
     et[i, :] = etr * area[i, :]
@@ -44,13 +48,15 @@ for i in range(0, volume.shape[0]-1):
     excess = v0 - (volume[i, :] + inflow[i, :] - et[i, :] - outflow[i, :])
     volume[i+1, :] = volume[i, :] + inflow[i, :] - et[i, :] - outflow[i, :]
     excess = volume[i + 1, :] - v0
-    print("outflow 1", outflow[i, :])
+    print("outflow 1", outflow[i, :], 'area', area[i, :])
     outflow[i, :] = outflow[i, :] + np.where(excess > 0, excess, 0.0)
     print("outflow 2", outflow[i, :])
     volume[i + 1, :][excess > 0] = v0
+    print('volume', volume[i, :], v0)
     inflow[i, 1:] = inflow[i, 1:] + outflow[i, :-1]
     volume[volume < 0] = 0.0
     h = getHeight(h0, volume[i, :], s, p)
+    print('h', h, getHeight(h0, 908.0, s, p))
 outflow[-1, :] = volume[-1, :] * k
 
 
